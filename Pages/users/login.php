@@ -5,30 +5,33 @@ require_once('Models/Database.php');
 
 $dbContext = new Database();
 
-
-
 $errorMessage = "";
-$username = ""; 
+$email = ""; 
 if ($_SERVER['REQUEST_METHOD'] == 'POST'){
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+    $email = isset($_POST['email']) ? $_POST['email'] : '';
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
 
-    try{  // om det är felaktigt användarnamn eller lösenord så kastas ett undantag
-        // och vi hamnar i catch
-        $dbContext->getUsersDatabase()->getAuth()->login($username, $password);
+    try {
+        $dbContext->getUsersDatabase()->getAuth()->login($email, $password);
         header('Location: /');
         exit;
     }
-    catch(Exception $e){
-        $errorMessage = "Kunde inte logga in";
+    catch (\Delight\Auth\InvalidEmailException $e) {
+        $errorMessage = "Felaktig e-postadress.";
     }
-}else{
-    // Det är INTE ett formulär som har postats - utan man har klickat in på länk tex edit.php?id=12
+    catch (\Delight\Auth\InvalidPasswordException $e) {
+        $errorMessage = "Felaktigt lösenord.";
+    }
+    catch (\Delight\Auth\EmailNotVerifiedException $e) {
+        $errorMessage = "E-postadressen är inte verifierad.";
+    }
+    catch (\Delight\Auth\TooManyRequestsException $e) {
+        $errorMessage = "För många inloggningsförsök. Försök igen senare.";
+    }
+    catch (Exception $e) {
+        $errorMessage = "Kunde inte logga in. " . $e->getMessage();
+    }
 }
-
-//Kunna lagra i databas
-
-
 ?>
 
 <!DOCTYPE html>
@@ -49,25 +52,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
 <body>
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
             <div class="container px-4 px-lg-5">
-                <a class="navbar-brand" href="/">SuperShoppen</a>
+                <a class="navbar-brand" href="/">Shirtify</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Kategorier</a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                                <li><a class="dropdown-item" href="#!">All Products</a></li>
+                            <li><a class="dropdown-item" href="/category?catid=All">All Products</a></li>
                                 <li><hr class="dropdown-divider" /></li>
                                     <?php
                                     foreach($dbContext->getAllCategories() as $cat){
-                                        echo "<li><a class='dropdown-item' href='#!'>$cat</a></li>";
+                                        echo "<li><a class='dropdown-item' href='/category?catid=" . urlencode($cat['id']) . "'>" . htmlspecialchars($cat['name']) . "</a></li>";
                                     } 
                                     ?> 
-                                    <li><a class="dropdown-item" href="#!">En cat</a></li>
+                                    
                             </ul> 
                         </li>
-                        <li class="nav-item"><a class="nav-link" href="#!">Login</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#!">Create account</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/user/login">Login</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/user/register">Create account</a></li>
                     </ul>
                     <form class="d-flex">
                         <button class="btn btn-outline-dark" type="submit">
@@ -84,31 +87,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
     <h1>Log in</h1>
     <?php
     if($errorMessage != ""){
-        echo "<div class='alert alert-danger' role='alert'>".$errorMessage."</div>";
+        echo "<div class='alert alert-danger' role='alert'>".htmlspecialchars($errorMessage)."</div>";
     }
     ?>
     <p>Logga in med din email och lösenord</p>
     <form method="POST" >  
             <div class="form-group">
-                <label for="username">Email</label>
-                <input type="text" class="form-control" name="username" value="<?php echo $username ?>">
+                <label for="email">Email</label>
+                <input type="text" class="form-control" name="email" value="<?php echo htmlspecialchars($email) ?>">
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
                 <input type="password" class="form-control" name="password" value="">
             </div>
             <input type="submit" class="btn btn-primary" value="Login">
-            <a href="/register" class="btn btn-secondary">Register</a>
-            <a href="/forgot" class="btn btn-secondary">Forgot password</a>
+            <a href="/user/register" class="btn btn-secondary">Register</a>
+            <a href="/user/forgot" class="btn btn-secondary">Forgot password</a>
         </form>
-
-
-
-
 </div>
 </section>
-
-
 
 <?php Footer(); ?>
 <!-- Bootstrap core JS-->

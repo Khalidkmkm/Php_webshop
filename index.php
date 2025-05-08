@@ -5,15 +5,15 @@
 // om url = "/edit" så visa edit.php
 // om url = "/" så visa index.php
 
-require_once("Utils/router.php"); // LADDAR IN ROUTER KLASSEN
-require_once("vendor/autoload.php"); // LADDA ALLA DEPENDENCIES FROM VENDOR
-//  :: en STATIC funktion
-$dotenv = Dotenv\Dotenv::createImmutable("."); // . is  current folder for the PAGE
-$dotenv->load();
-// Pilar istf .
-// \ istf .
 
-// import * as dotenv from 'dotenv';
+
+require_once( 'Utils/router.php'); 
+require_once ( 'vendor/autoload.php');
+
+$dotenv = Dotenv\Dotenv::createImmutable(".");
+$dotenv->load();
+
+
 
 
 
@@ -54,6 +54,26 @@ $router->addRoute('/user/registerThanks', function () {
 
 $router->addRoute('/search', function () {
     require_once( __DIR__ .'/Pages/search.php');
+});
+
+$router->addRoute('/productDetails', function () {
+    require_once(__DIR__ . '/Pages/productDetails.php');
+});
+
+$router->addRoute('/user/forgot', function () {
+    require_once(__DIR__ .'/Pages/users/forgot.php');
+});
+
+$router->addRoute('/add-to-cart', function () {
+    require_once(__DIR__ .'/Pages/add-to-cart.php');
+});
+
+$router->addRoute('/cart', function () {
+    require_once(__DIR__ .'/Pages/cart.php');
+});
+
+$router->addRoute('/update-cart', function () {
+    require_once(__DIR__ .'/Pages/update-cart.php');
 });
 
 $router->dispatch();

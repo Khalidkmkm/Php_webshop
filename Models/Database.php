@@ -1,19 +1,15 @@
 <?php 
 
-require_once('Models/UserDatabase.php');
-require_once("vendor/autoload.php");
+require_once(__DIR__ . '/UserDatabase.php');
+require_once(__DIR__ . '/../vendor/autoload.php');
+require_once(__DIR__ . '/Product.php');
 
-// Hur kan man strukturera klasser
-// Hir kan man struktirera filer? Folders + subfolders
-// NAMESPACES       
 
-// LÄS IN ALLA  .env VARIABLER till $_ENV i PHP
 
 
 
     class Database{
-        public $pdo; // PDO är PHP Data Object - en klass som finns i PHP för att kommunicera med databaser
-        // I $pdo finns nu funktioner (dvs metoder!) som kan användas för att kommunicera med databasen
+        public $pdo;
 
         private $usersDatabase;
         function getUsersDatabase(){
@@ -26,11 +22,11 @@ require_once("vendor/autoload.php");
         // SKILJ PÅ CONFIGURATION OCH KOD
 
         function __construct() {    
-            $host = $_ENV['HOST'];
-            $db   = $_ENV['DB'];
-            $user = $_ENV['USER'];
-            $pass = $_ENV['PASSWORD'];
-            $port = $_ENV['PORT'];
+            $host = $_ENV['DB_HOST'];
+            $db   = $_ENV['DB_NAME'];
+            $user = $_ENV['DB_USER'];
+            $pass = $_ENV['DB_PASSWORD'];
+            $port = $_ENV['DB_PORT'];
 
             $dsn = "mysql:host=$host:$port;dbname=$db"; // connection string
             $this->pdo = new PDO($dsn, $user, $pass);
@@ -42,11 +38,11 @@ require_once("vendor/autoload.php");
             $this->usersDatabase->seedUsers();
         }
 
-        function addProductIfNotExists($title, $price, $stockLevel, $categoryName,$popularityFactor){
-            $query = $this->pdo->prepare("SELECT * FROM Products WHERE title = :title");
-            $query->execute(['title' => $title]);
+        function addProductIfNotExists($name, $price, $description, $category_id, $popularityFactor){
+            $query = $this->pdo->prepare("SELECT * FROM Products WHERE name = :name");
+            $query->execute(['name' => $name]);
             if($query->rowCount() == 0){
-                $this->insertProduct($title, $stockLevel, $price, $categoryName,$popularityFactor);
+                $this->insertProduct($name, $price, $description, $category_id, $popularityFactor);
             }
         }
 
@@ -62,12 +58,12 @@ require_once("vendor/autoload.php");
             $faker->addProvider(new \Bezhanov\Faker\Provider\Commerce($faker));            
 
             for($i = 0; $i < 100; $i++){
-                $title = $faker->productName();
+                $name = $faker->productName();
                 $price = $faker->numberBetween(1, 100);
-                $stockLevel = $faker->numberBetween(1, 100);
-                $categoryName = $faker->category();
+                $description = $faker->sentence(6);
+                $category_id = $faker->numberBetween(1, 3); // Anpassa efter antal kategorier
                 $popularityFactor = $faker->numberBetween(1, 100);
-                $this->addProductIfNotExists($title, $price, $stockLevel, $categoryName,$popularityFactor);
+                $this->addProductIfNotExists($name, $price, $description, $category_id, $popularityFactor);
             }
         }
 
@@ -87,11 +83,12 @@ require_once("vendor/autoload.php");
         function initDatabase(){
             $this->pdo->query('CREATE TABLE IF NOT EXISTS Products (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                title VARCHAR(50),
-                price INT,
-                stockLevel INT,
-                categoryName VARCHAR(50),
-                popularityFactor INT DEFAULT(0)            
+                name VARCHAR(50),
+                description TEXT,
+                price DECIMAL(10,2),
+                category_id INT,
+                popularityFactor INT DEFAULT(0),
+                color VARCHAR(20) DEFAULT NULL
                 )');
         }
 
@@ -103,13 +100,17 @@ require_once("vendor/autoload.php");
         }
 
         function updateProduct($product){
-            $s = "UPDATE Products SET title = :title," .
-                " price = :price, stockLevel = :stockLevel, categoryName = :categoryName, popularityFactor=:popularityFactor WHERE id = :id";
+            $s = "UPDATE Products SET name = :name, description = :description, price = :price, category_id = :category_id, popularityFactor = :popularityFactor, color = :color WHERE id = :id";
             $query = $this->pdo->prepare($s);
-            $query->execute(['title' => $product->title, 'price' => $product->price,
-                'stockLevel' => $product->stockLevel, 'categoryName' => $product->categoryName, 
-                'id' => $product->id,
-                'popularityFactor' => $product->popularityFactor]);
+            $query->execute([
+                'name' => $product->name,
+                'description' => $product->description,
+                'price' => $product->price,
+                'category_id' => $product->category_id,
+                'popularityFactor' => $product->popularityFactor,
+                'color' => $product->color,
+                'id' => $product->id
+            ]);
         }
 
         function deleteProduct($id){
@@ -117,24 +118,27 @@ require_once("vendor/autoload.php");
             $query->execute(['id' => $id]);
         }
 
-        function insertProduct($title, $stockLevel, $price, $categoryName,$popularityFactor) {
-            $sql = "INSERT INTO Products (title, price, stockLevel, categoryName, popularityFactor) VALUES (:title, :price, :stockLevel, :categoryName, :popularityFactor)";
+        function insertProduct($name, $price, $description, $category_id, $popularityFactor) {
+            $sql = "INSERT INTO Products (name, price, description, category_id, popularityFactor) VALUES (:name, :price, :description, :category_id, :popularityFactor)";
             $query = $this->pdo->prepare($sql);
-            $query->execute(['title' => $title, 'price' => $price,
-                'stockLevel' => $stockLevel, 'categoryName' => $categoryName,
-                'popularityFactor' => $popularityFactor]);
+            $query->execute([
+                'name' => $name,
+                'price' => $price,
+                'description' => $description,
+                'category_id' => $category_id,
+                'popularityFactor' => $popularityFactor
+            ]);
         }
 
 
-        function searchProducts($q,$sortCol, $sortOrder){ // $q = oo
-            if(!in_array($sortCol,[ "title","price"])){ // title123312132312321
-                $sortCol = "title";
+        function searchProducts($q, $sortCol, $sortOrder){
+            if(!in_array($sortCol,[ "name","price" ])){
+                $sortCol = "name";
             }
             if(!in_array($sortOrder,["asc", "desc"])){
                 $sortOrder = "asc";
             }
-
-            $query = $this->pdo->prepare("SELECT * FROM Products WHERE title LIKE :q OR categoryName LIKE :q ORDER BY $sortCol $sortOrder"); // Products är TABELL
+            $query = $this->pdo->prepare("SELECT * FROM Products WHERE name LIKE :q OR description LIKE :q ORDER BY $sortCol $sortOrder");
             $query->execute(['q' => "%$q%"]);
             return $query->fetchAll(PDO::FETCH_CLASS, 'Product');
         }
@@ -142,7 +146,7 @@ require_once("vendor/autoload.php");
 
         //function getAllProducts($sortCol, $sortOrder){
         function getAllProducts($sortCol="id", $sortOrder= "asc"){
-            if(!in_array($sortCol,["id", "categoryName",  "title","price","stockLevel"])){
+            if(!in_array($sortCol,["id", "category_id",  "name","price" ])){
                 $sortCol = "id";
             }
             if(!in_array($sortOrder,["asc", "desc"])){
@@ -158,19 +162,36 @@ require_once("vendor/autoload.php");
             return $query->fetchAll(PDO::FETCH_CLASS, 'Product'); // Product är PHP Klass
         }
 
-        function getCategoryProducts($catName){
-            if($catName == ""){
-                $query = $this->pdo->query("SELECT * FROM Products"); // Products är TABELL 
-                return $query->fetchAll(PDO::FETCH_CLASS, 'Product'); // Product är PHP Klass
+        function countCategoryProducts($category_id) {
+            $query = $this->pdo->prepare("SELECT COUNT(*) FROM Products WHERE category_id = :category_id");
+            $query->execute(['category_id' => $category_id]);
+            return $query->fetchColumn();
+        }
+
+        function getCategoryProducts($category_id, $limit = null, $sortCol = 'name', $sortOrder = 'asc', $offset = 0) {
+            if(!in_array($sortCol,["id", "category_id", "name","price" ])){
+                $sortCol = "name";
             }
-            $query = $this->pdo->prepare("SELECT * FROM Products WHERE categoryName = :categoryName");
-            $query->execute(['categoryName' => $catName]);
+            if(!in_array($sortOrder,["asc", "desc"])){
+                $sortOrder = "asc";
+            }
+            $sql = "SELECT * FROM Products WHERE category_id = :category_id ORDER BY $sortCol $sortOrder";
+            if ($limit !== null) {
+                $sql .= " LIMIT " . intval($limit) . " OFFSET " . intval($offset);
+            }
+            $query = $this->pdo->prepare($sql);
+            $query->execute(['category_id' => $category_id]);
             return $query->fetchAll(PDO::FETCH_CLASS, 'Product');
         }
-        function getAllCategories(){
-                // SELECT DISTINCT categoryName FROM Products
-            $data = $this->pdo->query('SELECT DISTINCT categoryName FROM Products')->fetchAll(PDO::FETCH_COLUMN);
+        function getAllCategories() {
+            $data = $this->pdo->query('SELECT id, name FROM categories')->fetchAll(PDO::FETCH_ASSOC);
             return $data;
+        }
+
+        function getCategoryName($category_id) {
+            $query = $this->pdo->prepare("SELECT name FROM categories WHERE id = :id");
+            $query->execute(['id' => $category_id]);
+            return $query->fetchColumn();
         }
 
     }

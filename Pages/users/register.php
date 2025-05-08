@@ -1,40 +1,49 @@
 <?php
-require_once('Models/Product.php');
-require_once("components/Footer.php");
-require_once('Models/Database.php');
-
+require_once(__DIR__ . '/../../Models/Database.php');
 $dbContext = new Database();
 
+require_once(__DIR__ . '/../../Utils/validator.php');
+require_once(__DIR__ . '/../../components/Footer.php');
 
+$errorMessages = [];
+$data = $_POST;
 
-$errorMessage = "";
-$username = ""; 
-if ($_SERVER['REQUEST_METHOD'] == 'POST'){
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $v = new Validator($data);
+    $v->field('username', 'E-post')
+      ->required()
+      ->email();
+    $v->field('password', 'Lösenord')
+      ->required()
+      ->min_len(8)
+      ->must_contain('0-9');
+    $v->field('password2', 'Bekräfta lösenord')
+      ->required()
+      ->equals($data['password'] ?? '');
 
-    try{
-            $userId = $dbContext->getUsersDatabase()->getAuth()->register($username, $password, $username);
+    if (!$v->is_valid()) {
+        $errorMessages = $v->error_messages;
+    } else {
+        try {
+            $userId = $dbContext->getUsersDatabase()->getAuth()->register($data['username'], $data['password'], $data['username']);
             header('Location: /user/registerThanks');
             exit;
-        } 
+        }
         catch (\Delight\Auth\InvalidEmailException $e) {
-            $errorMessage = "Ej korrekt email";
+            $errorMessages['username'] = 'Ej korrekt email';
         }
         catch (\Delight\Auth\InvalidPasswordException $e) {
-            $errorMessage = "Invalid password";
-        }    
+            $errorMessages['password'] = 'Ogiltigt lösenord';
+        }
         catch (\Delight\Auth\UserAlreadyExistsException $e) {
-            $errorMessage = "Finns redan";
-        }    
+            $errorMessages['username'] = 'Användare finns redan';
+        }
         catch (\Exception $e) {
-            $errorMessage = "Ngt gick fel";
+            error_log($e->getMessage());
+            $errorMessages['general'] = 'Något gick fel, var god försök igen';
         }
     }
-   
-//Kunna lagra i databas
-
-
+}
 ?>
 
 <!DOCTYPE html>
@@ -55,25 +64,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
 <body>
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
             <div class="container px-4 px-lg-5">
-                <a class="navbar-brand" href="/">SuperShoppen</a>
+                <a class="navbar-brand" href="/">Shirtify</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Kategorier</a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                                <li><a class="dropdown-item" href="#!">All Products</a></li>
+                                <li><a class="dropdown-item" href="/category?catid=All">All Products</a></li>
                                 <li><hr class="dropdown-divider" /></li>
                                     <?php
                                     foreach($dbContext->getAllCategories() as $cat){
-                                        echo "<li><a class='dropdown-item' href='#!'>$cat</a></li>";
+                                        echo "<li><a class='dropdown-item' href='/category?catid=" . urlencode($cat['id']) . "'>" . htmlspecialchars($cat['name']) . "</a></li>";
                                     } 
                                     ?> 
-                                    <li><a class="dropdown-item" href="#!">En cat</a></li>
                             </ul> 
                         </li>
-                        <li class="nav-item"><a class="nav-link" href="#!">Login</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#!">Create account</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/user/login">Login</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/user/register">Create account</a></li>
                     </ul>
                     <form class="d-flex">
                         <button class="btn btn-outline-dark" type="submit">
@@ -87,27 +95,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
         </nav>
     <section class="py-5">
     <div class="container px-4 px-lg-5 mt-5">
-    <h1>Register</h1>
-    <?php
-    if($errorMessage != ""){
-        echo "<div class='alert alert-danger' role='alert'>".$errorMessage."</div>";
-    }
-    ?>
-    <form method="POST" > 
-            <div class="form-group">
-                <label for="username">Email</label>
-                <input type="text" class="form-control" name="username" value="<?php echo $username ?>">
-            </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" class="form-control" name="password" value="">
-            </div>
-            <div class="form-group">
-                <label for="password">Password igen</label>
-                <input type="password" class="form-control" name="password2" value="">
-            </div>
-            <input type="submit" class="btn btn-primary" value="Register">
-        </form>
+    <h1>Registrera konto</h1>
+    <?php if (isset($errorMessages['general'])): ?>
+        <div class="alert alert-danger" role="alert"><?= htmlspecialchars($errorMessages['general']) ?></div>
+    <?php endif; ?>
+    <form method="POST">
+        <div class="form-group">
+            <label for="username">E-post</label>
+            <input type="text" class="form-control" name="username" value="<?= htmlspecialchars($data['username'] ?? '') ?>" required>
+            <div class="error text-danger"><?= htmlspecialchars($errorMessages['username'] ?? '') ?></div>
+        </div>
+        <div class="form-group">
+            <label for="password">Lösenord</label>
+            <input type="password" class="form-control" name="password" required>
+            <div class="error text-danger"><?= htmlspecialchars($errorMessages['password'] ?? '') ?></div>
+        </div>
+        <div class="form-group">
+            <label for="password2">Bekräfta lösenord</label>
+            <input type="password" class="form-control" name="password2" required>
+            <div class="error text-danger"><?= htmlspecialchars($errorMessages['password2'] ?? '') ?></div>
+        </div>
+        <input type="submit" class="btn btn-primary" value="Registrera">
+    </form>
 
 
 

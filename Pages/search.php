@@ -1,9 +1,9 @@
 <?php
 // ONCE = en gång även om det blir cirkelreferenser
 #include_once("Models/Products.php") - OK även om filen inte finns
-require_once("Models/Product.php");
-require_once("components/Footer.php");
-require_once("Models/Database.php");
+require_once(__DIR__ . '/../Models/Product.php');
+require_once(__DIR__ . '/../components/Footer.php');
+require_once(__DIR__ . '/../Models/Database.php');
 
 $dbContext = new Database();
 
@@ -20,7 +20,7 @@ $sortOrder = $_GET['sortOrder'] ?? "";
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="description" content="" />
         <meta name="author" content="" />
-        <title>Shop Homepage - Start Bootstrap Template</title>
+        <title>Shirtify - Sök</title>
         <!-- Favicon-->
         <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
         <!-- Bootstrap icons-->
@@ -32,7 +32,7 @@ $sortOrder = $_GET['sortOrder'] ?? "";
         <!-- Navigation-->
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
             <div class="container px-4 px-lg-5">
-                <a class="navbar-brand" href="/">SuperShoppen</a>
+                <a class="navbar-brand" href="/">Shirtify</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
@@ -43,7 +43,7 @@ $sortOrder = $_GET['sortOrder'] ?? "";
                                 <li><hr class="dropdown-divider" /></li>
                                     <?php
                                     foreach($dbContext->getAllCategories() as $cat){
-                                        echo "<li><a class='dropdown-item' href='/category?catname=$cat'>$cat</a></li>";
+                                        echo "<li><a class='dropdown-item' href='/category?catid=" . $cat['id'] . "'>" . htmlspecialchars($cat['name']) . "</a></li>";
                                     } 
                                     ?> 
                             </ul> 
@@ -82,7 +82,7 @@ $sortOrder = $_GET['sortOrder'] ?? "";
         <header class="bg-dark py-5">
             <div class="container px-4 px-lg-5 my-5">
                 <div class="text-center text-white">
-                    <h1 class="display-4 fw-bolder">Super shoppen</h1>
+                    <h1 class="display-4 fw-bolder">Shirtify</h1>
                     <p class="lead fw-normal text-white-50 mb-0">Handla massa onödigt hos oss!</p>
                 </div>
             </div>
@@ -90,8 +90,8 @@ $sortOrder = $_GET['sortOrder'] ?? "";
         <!-- Section-->
         <section class="py-5">
             <div class="container px-4 px-lg-5 mt-5">
-                        <a href="?sortCol=title&sortOrder=asc&q=<?php echo $q;?>" class="btn btn-secondary">Title asc</a>
-                        <a href="?sortCol=title&sortOrder=desc&q=<?php echo $q;?>" class="btn btn-secondary">Title desc</a>
+                        <a href="?sortCol=name&sortOrder=asc&q=<?php echo $q;?>" class="btn btn-secondary">Name asc</a>
+                        <a href="?sortCol=name&sortOrder=desc&q=<?php echo $q;?>" class="btn btn-secondary">Name desc</a>
                         <a href="?sortCol=price&sortOrder=asc&q=<?php echo $q;?>" class="btn btn-secondary">Price asc</a>
                         <a href="?sortCol=price&sortOrder=desc&q=<?php echo $q;?>" class="btn btn-secondary">Price desc</a>
 
@@ -108,12 +108,13 @@ $sortOrder = $_GET['sortOrder'] ?? "";
                                     <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>
                                 <?php } ?>        
                                 <!-- Product image-->
-                                <img class="card-img-top" src="https://dummyimage.com/450x300/dee2e6/6c757d.jpg" alt="..." />
+                                <img class="card-img-top" src="<?php echo htmlspecialchars($prod->image_url); ?>" alt="<?php echo htmlspecialchars($prod->name); ?>" />
                                 <!-- Product details-->
                                 <div class="card-body p-4">
                                     <div class="text-center">
                                         <!-- Product name-->
-                                        <h5 class="fw-bolder"><?php echo $prod->title; ?></h5>
+                                        <h5 class="fw-bolder"><?php echo $prod->name; ?></h5>
+                                        <p><?php echo $prod->description; ?></p>
                                         <!-- Product price-->
                                         $<?php echo $prod->price; ?>.00
                                     </div>

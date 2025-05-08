@@ -1,16 +1,13 @@
 <?php
 
-class Product{
+class Product {
     public $id;
-    public $title;
+    public $name;
+    public $description;
     public $price;
-    public $stockLevel;
-    public $categoryName;
-
     public $popularityFactor;
-
     public $color;
-
-    // ANVÄND INTE CONSTRUCTOR MED PARAMETRAR FÖR PDO KAN INTE ANROPA DEN
-};
+    public $category_id;
+    public $image_url;
+}
 ?>
