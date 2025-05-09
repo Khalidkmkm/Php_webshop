@@ -1,4 +1,7 @@
 <?php
+session_start();
+$cartCount = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
+
 require_once(__DIR__ . '/../../Models/Database.php');
 $dbContext = new Database();
 
@@ -83,13 +86,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <li class="nav-item"><a class="nav-link" href="/user/login">Login</a></li>
                         <li class="nav-item"><a class="nav-link" href="/user/register">Create account</a></li>
                     </ul>
-                    <form class="d-flex">
-                        <button class="btn btn-outline-dark" type="submit">
-                            <i class="bi-cart-fill me-1"></i>
-                            Cart
-                            <span class="badge bg-dark text-white ms-1 rounded-pill">0</span>
-                        </button>
-                    </form>
+                    <a href="/cart" class="btn btn-outline-dark">
+                        <i class="bi-cart-fill me-1"></i>
+                        Cart
+                        <span class="badge bg-dark text-white ms-1 rounded-pill"><?php echo $cartCount; ?></span>
+                    </a>
                 </div>
             </div>
         </nav>

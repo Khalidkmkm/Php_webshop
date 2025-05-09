@@ -1,6 +1,5 @@
 <?php
-// ONCE = en gång även om det blir cirkelreferenser
-#include_once("Models/Products.php") - OK även om filen inte finns
+
 require_once(__DIR__ . '/../Models/Product.php');
 require_once(__DIR__ . '/../components/Footer.php');
 require_once(__DIR__ . '/../Models/Database.php');
@@ -68,13 +67,11 @@ $sortOrder = $_GET['sortOrder'] ?? "";
                         Current user: <?php echo $dbContext->getUsersDatabase()->getAuth()->getUsername() ?>
                         Current user: <?php echo $dbContext->getUsersDatabase()->getAuth()->getUsername() ?>
                     <?php } ?>
-                    <form class="d-flex">
-                        <button class="btn btn-outline-dark" type="submit">
-                            <i class="bi-cart-fill me-1"></i>
-                            Cart
-                            <span class="badge bg-dark text-white ms-1 rounded-pill">0</span>
-                        </button>
-                    </form>
+                    <a href="/cart" class="btn btn-outline-dark">
+                        <i class="bi-cart-fill me-1"></i>
+                        Cart
+                        <span class="badge bg-dark text-white ms-1 rounded-pill"><?php echo $cartCount; ?></span>
+                    </a>
                 </div>
             </div>
         </nav>
