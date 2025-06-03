@@ -31,16 +31,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $userId = $dbContext->getUsersDatabase()->getAuth()->register($data['username'], $data['password'], $data['username']);
             header('Location: /user/registerThanks');
             exit;
-        }
+        } 
         catch (\Delight\Auth\InvalidEmailException $e) {
             $errorMessages['username'] = 'Ej korrekt email';
         }
         catch (\Delight\Auth\InvalidPasswordException $e) {
             $errorMessages['password'] = 'Ogiltigt lösenord';
-        }
+        }    
         catch (\Delight\Auth\UserAlreadyExistsException $e) {
             $errorMessages['username'] = 'Användare finns redan';
-        }
+        }    
         catch (\Exception $e) {
             error_log($e->getMessage());
             $errorMessages['general'] = 'Något gick fel, var god försök igen';
@@ -87,8 +87,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <li class="nav-item"><a class="nav-link" href="/user/register">Create account</a></li>
                     </ul>
                     <a href="/cart" class="btn btn-outline-dark">
-                        <i class="bi-cart-fill me-1"></i>
-                        Cart
+                            <i class="bi-cart-fill me-1"></i>
+                            Cart
                         <span class="badge bg-dark text-white ms-1 rounded-pill"><?php echo $cartCount; ?></span>
                     </a>
                 </div>

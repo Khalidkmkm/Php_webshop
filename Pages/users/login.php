@@ -75,8 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
                         <li class="nav-item"><a class="nav-link" href="/user/register">Create account</a></li>
                     </ul>
                     <a href="/cart" class="btn btn-outline-dark">
-                        <i class="bi-cart-fill me-1"></i>
-                        Cart
+                            <i class="bi-cart-fill me-1"></i>
+                            Cart
                         <span class="badge bg-dark text-white ms-1 rounded-pill"><?php echo $cartCount; ?></span>
                     </a>
                 </div>
