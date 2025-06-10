@@ -1,15 +1,26 @@
 <?php
 session_start();
-$productId = $_POST['product_id'] ?? null;
-if ($productId) {
-    if (!isset($_SESSION['cart'])) {
-        $_SESSION['cart'] = [];
-    }
-    if (isset($_SESSION['cart'][$productId])) {
-        $_SESSION['cart'][$productId]++;
-    } else {
-        $_SESSION['cart'][$productId] = 1;
-    }
+require_once(__DIR__ . '/../Models/Database.php');
+require_once(__DIR__ . '/../Models/Cart.php');
+
+$dbContext = new Database();
+
+$productId = $_POST['product_id'] ?? $_GET['productId'] ?? "";
+$fromPage = $_POST['fromPage'] ?? $_GET['fromPage'] ?? "/";
+
+if (empty($productId)) {
+    header("Location: $fromPage");
+    exit;
 }
-header('Location: ' . $_SERVER['HTTP_REFERER']);
+
+$userId = null;
+if($dbContext->getUsersDatabase()->getAuth()->isLoggedIn()){
+    $userId = $dbContext->getUsersDatabase()->getAuth()->getUserId();
+}
+$session_id = session_id();
+
+$cart = new Cart($dbContext, $session_id, $userId);
+$cart->addItem($productId, 1);
+
+header("Location: $fromPage");
 exit; 

@@ -3,12 +3,20 @@ session_start();
 
 require_once( 'Models/Product.php');
 require_once( 'components/Footer.php');
-require_once( 'Models/Database.php');
+require_once(__DIR__ . '/../Models/Database.php');
+require_once(__DIR__ . '/../Models/Cart.php');
 require_once( 'Utils/router.php');
 
 $dbContext = new Database();
 
-$cartCount = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
+$userId = null;
+if($dbContext->getUsersDatabase()->getAuth()->isLoggedIn()){
+    $userId = $dbContext->getUsersDatabase()->getAuth()->getUserId();
+}
+$session_id = session_id();
+
+$cart = new Cart($dbContext, $session_id, $userId);
+$cartCount = $cart->getItemsCount();
 ?>
 
 <!DOCTYPE html>
@@ -70,7 +78,7 @@ $cartCount = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
                         <a href="/cart" class="btn btn-outline-dark">
                             <i class="bi-cart-fill me-1"></i>
                             Cart
-                            <span class="badge bg-dark text-white ms-1 rounded-pill"><?php echo $cartCount; ?></span>
+                            <span class="badge bg-dark text-white ms-1 rounded-pill"><?= $cartCount ?></span>
                         </a>
                     </form>
                 </div>
@@ -118,6 +126,7 @@ $cartCount = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
                                 <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
                                     <form method="POST" action="/add-to-cart">
                                         <input type="hidden" name="product_id" value="<?php echo $prod->id; ?>">
+                                        <input type="hidden" name="fromPage" value="<?php echo $_SERVER['REQUEST_URI'] ?>">
                                         <button type="submit" class="btn btn-outline-dark mt-auto">Add to cart</button>
                                     </form>
                                 </div>

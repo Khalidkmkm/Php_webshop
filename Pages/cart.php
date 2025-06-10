@@ -1,20 +1,20 @@
 <?php
 session_start();
 require_once(__DIR__ . '/../Models/Database.php');
+require_once(__DIR__ . '/../Models/Cart.php');
+
 $dbContext = new Database();
 
-$cart = $_SESSION['cart'] ?? [];
-$products = [];
-$total = 0;
-
-if (!empty($cart)) {
-    // Hämta alla produkter som finns i kundvagnen
-    $ids = array_keys($cart);
-    $placeholders = implode(',', array_fill(0, count($ids), '?'));
-    $stmt = $dbContext->pdo->prepare("SELECT * FROM Products WHERE id IN ($placeholders)");
-    $stmt->execute($ids);
-    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$userId = null;
+if($dbContext->getUsersDatabase()->getAuth()->isLoggedIn()){
+    $userId = $dbContext->getUsersDatabase()->getAuth()->getUserId();
 }
+$session_id = session_id();
+
+$cart = new Cart($dbContext, $session_id, $userId);
+$items = $cart->getItems();
+$total = $cart->getTotalPrice();
+$cartCount = $cart->getItemsCount();
 
 $backUrl = $_SERVER['HTTP_REFERER'] ?? '/';
 if (strpos($backUrl, '/cart') !== false) {
@@ -34,7 +34,7 @@ if (strpos($backUrl, '/cart') !== false) {
             &#8592; Tillbaka
         </a>
         <h1>Kundvagn</h1>
-        <?php if (empty($cart)): ?>
+        <?php if (empty($items)): ?>
             <p>Din kundvagn är tom.</p>
         <?php else: ?>
             <table class="table">
@@ -47,26 +47,22 @@ if (strpos($backUrl, '/cart') !== false) {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($products as $prod): 
-                        $qty = $cart[$prod['id']];
-                        $subtotal = $qty * $prod['price'];
-                        $total += $subtotal;
-                    ?>
+                    <?php foreach ($items as $item): ?>
                     <tr>
-                        <td><?= htmlspecialchars($prod['name']) ?></td>
-                        <td><?= number_format($prod['price'], 2) ?> kr</td>
+                        <td><?= htmlspecialchars($item->productName) ?></td>
+                        <td><?= number_format($item->productPrice, 2) ?> kr</td>
                         <td>
                             <form method="POST" action="/update-cart" style="display:inline-block;">
-                                <input type="hidden" name="product_id" value="<?= $prod['id'] ?>">
-                                <input type="number" name="quantity" value="<?= $qty ?>" min="1" style="width:60px;">
+                                <input type="hidden" name="product_id" value="<?= $item->productId ?>">
+                                <input type="number" name="quantity" value="<?= $item->quantity ?>" min="1" style="width:60px;">
                                 <button type="submit" name="action" value="update" class="btn btn-sm btn-primary">Uppdatera</button>
                             </form>
                             <form method="POST" action="/update-cart" style="display:inline-block;">
-                                <input type="hidden" name="product_id" value="<?= $prod['id'] ?>">
+                                <input type="hidden" name="product_id" value="<?= $item->productId ?>">
                                 <button type="submit" name="action" value="delete" class="btn btn-sm btn-danger">Ta bort</button>
                             </form>
                         </td>
-                        <td><?= number_format($subtotal, 2) ?> kr</td>
+                        <td><?= number_format($item->rowPrice, 2) ?> kr</td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -83,4 +79,4 @@ if (strpos($backUrl, '/cart') !== false) {
         <?php endif; ?>
     </div>
 </body>
-</html> 
+</html>
