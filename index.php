@@ -15,8 +15,6 @@ $dotenv->load();
 
 
 
-
-
 $router = new Router();
 $router->addRoute('/', function () {
     require_once( __DIR__ .'/Pages/index.php');
