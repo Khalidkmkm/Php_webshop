@@ -1,4 +1,10 @@
 <?php
+   require_once(__DIR__ . '/../vendor/autoload.php');
+   if (class_exists('Dotenv\\Dotenv')) {
+       $dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__));
+       $dotenv->load();
+   }
+
 session_start();
 
 require_once( 'Models/Product.php');

@@ -1,32 +1,45 @@
 <?php
 session_start();
 $cartCount = isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
+
+// ONCE = en gång även om det blir cirkelreferenser
+// include_once("Models/Products.php") - OK även om filen inte finns
 require_once(__DIR__ . '/../Models/Product.php');
 require_once(__DIR__ . '/../components/Footer.php');
 require_once(__DIR__ . '/../Models/Database.php');
+require_once(__DIR__ . '/../components/SingleProduct.php');
 
 $dbContext = new Database();
 
-$catid = $_GET['catid'] ?? null;
-$limit = null;
+$catId = $_GET['id'] ?? "";
 $sortCol = $_GET['sortCol'] ?? 'name';
 $sortOrder = $_GET['sortOrder'] ?? 'asc';
 
+$header = "Alla produkter";
+$description = "Alla produkter i butiken";
+
+if($catId != ""){
+    $categoryName = $dbContext->getCategoryName($catId);
+    if($categoryName != null){
+        $header = $categoryName;
+        $description = "Produkter i kategorin " . $categoryName;
+    }
+}
+
+// Get products based on category
 $products = [];
-$categoryName = '';
-if ($catid === null || $catid === '' || $catid === 'All') {
+if ($catId === "" || $catId === null) {
     $products = $dbContext->getAllProducts($sortCol, $sortOrder);
-    $categoryName = 'Alla produkter';
 } else {
-    if ($catid == 1) { // Classic Tees
+    $limit = null;
+    if ($catId == 1) { // Classic Tees
         $limit = 3;
-    } elseif ($catid == 2) { // Geek/Code Tees
+    } elseif ($catId == 2) { // Geek/Code Tees
         $limit = 3;
-    } elseif ($catid == 3) { // Statement Tees
+    } elseif ($catId == 3) { // Statement Tees
         $limit = 4;
     }
-    $products = $dbContext->getCategoryProducts($catid, $limit, $sortCol, $sortOrder);
-    $categoryName = $dbContext->getCategoryName($catid);
+    $products = $dbContext->getCategoryProducts($catId, $limit, $sortCol, $sortOrder);
 }
 ?>
 
@@ -35,9 +48,9 @@ if ($catid === null || $catid === '' || $catid === 'All') {
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <meta name="description" content="" />
+        <meta name="description" content="<?php echo htmlspecialchars($description); ?>" />
         <meta name="author" content="" />
-        <title><?php echo htmlspecialchars($categoryName); ?> - Shirtify</title>
+        <title><?php echo htmlspecialchars($header); ?> - Shirtify</title>
         <!-- Favicon-->
         <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
         <!-- Bootstrap icons-->
@@ -56,13 +69,13 @@ if ($catid === null || $catid === '' || $catid === 'All') {
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Kategorier</a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                                <li><a class="dropdown-item" href="/category">All Products</a></li>
+                                <li><a class="dropdown-item" href="/category">Alla produkter</a></li>
                                 <li><hr class="dropdown-divider" /></li>
-                                    <?php
-                                    foreach($dbContext->getAllCategories() as $cat){
-                                        echo "<li><a class='dropdown-item' href='/category?catid=" . $cat['id'] . "'>" . htmlspecialchars($cat['name']) . "</a></li>";
-                                    }
-                                    ?> 
+                                <?php
+                                foreach($dbContext->getAllCategories() as $category){
+                                    echo "<li><a class='dropdown-item' href='/category?id=" . $category['id'] . "'>" . htmlspecialchars($category['name']) . "</a></li>";
+                                } 
+                                ?> 
                             </ul> 
                         </li>
                         <li class="nav-item"><a class="nav-link" href="/user/login">Login</a></li>
@@ -70,11 +83,11 @@ if ($catid === null || $catid === '' || $catid === 'All') {
                     </ul>
                     <form action="/search" method="GET">
                         <input type="text" name="q" placeholder="Search" class="form-control">
-                     </form>   
+                    </form>   
 
                     <a href="/cart" class="btn btn-outline-dark">
-                            <i class="bi-cart-fill me-1"></i>
-                            Cart
+                        <i class="bi-cart-fill me-1"></i>
+                        Cart
                         <span class="badge bg-dark text-white ms-1 rounded-pill"><?php echo $cartCount; ?></span>
                     </a>
                 </div>
@@ -84,18 +97,22 @@ if ($catid === null || $catid === '' || $catid === 'All') {
         <header class="bg-dark py-5">
             <div class="container px-4 px-lg-5 my-5">
                 <div class="text-center text-white">
-                    <h1 class="display-4 fw-bolder"><?php echo htmlspecialchars($categoryName); ?></h1>
+                    <h1 class="display-4 fw-bolder"><?php echo htmlspecialchars($header); ?></h1>
+                </div>
+                <div class="text-center text-white">
+                    <p class="lead fw-normal text-white-50 mb-0"><?php echo htmlspecialchars($description); ?></p>
                 </div>
             </div>
         </header>
         <!-- Section-->
         <section class="py-5">
             <div class="container px-4 px-lg-5 mt-5">
+                <!-- Sorting buttons -->
                 <div style="margin-bottom: 1rem;">
                     <?php
                     $baseUrl = "?";
-                    if ($catid !== null && $catid !== '' && $catid !== 'All') {
-                        $baseUrl .= "catid=" . urlencode($catid) . "&";
+                    if ($catId !== "" && $catId !== null) {
+                        $baseUrl .= "id=" . urlencode($catId) . "&";
                     }
                     ?>
                     <a href="<?php echo $baseUrl; ?>sortCol=name&sortOrder=asc" class="btn btn-secondary">Name asc</a>
@@ -103,11 +120,17 @@ if ($catid === null || $catid === '' || $catid === 'All') {
                     <a href="<?php echo $baseUrl; ?>sortCol=price&sortOrder=asc" class="btn btn-secondary">Price asc</a>
                     <a href="<?php echo $baseUrl; ?>sortCol=price&sortOrder=desc" class="btn btn-secondary">Price desc</a>
                 </div>
+                
                 <div class="row gx-4 gx-lg-5 row-cols-2 row-cols-md-3 row-cols-xl-4 justify-content-center">
                 <?php 
                 foreach($products as $prod){
-                ?>                    
-                    <div class="col mb-5">
+                    // Check if SingleProduct component exists, otherwise use inline product display
+                    if (function_exists('SingleProduct')) {
+                        SingleProduct($prod);
+                    } else {
+                        // Fallback to inline product display
+                        ?>                    
+                        <div class="col mb-5">
                             <div class="card h-100">
                                 <?php if($prod->price < 10) {  ?>
                                     <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>
@@ -119,10 +142,10 @@ if ($catid === null || $catid === '' || $catid === 'All') {
                                     <div class="text-center">
                                         <!-- Product name as link -->
                                         <a href="/productDetails?id=<?php echo $prod->id; ?>">
-                                            <h5 class="fw-bolder"><?php echo $prod->name; ?></h5>
+                                            <h5 class="fw-bolder"><?php echo htmlspecialchars($prod->name); ?></h5>
                                         </a>
                                         <!-- Product description -->
-                                        <p><?php echo $prod->description; ?></p>
+                                        <p><?php echo htmlspecialchars($prod->description); ?></p>
                                         <!-- Product price -->
                                         <p>Pris: <?php echo $prod->price; ?> kr</p>
                                     </div>
@@ -136,12 +159,15 @@ if ($catid === null || $catid === '' || $catid === 'All') {
                                 </div>
                             </div>
                         </div>    
-                    <?php } ?>  
+                        <?php 
+                    }
+                } ?>  
                 </div>
+                
                 <?php if (isset($totalPages) && $totalPages > 1): ?>
                 <div class="pagination" style="margin: 2rem 0; text-align: center;">
                   <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                    <a href="?catid=<?php echo urlencode($catid); ?>&page=<?php echo $i; ?>&sortCol=<?php echo $sortCol; ?>&sortOrder=<?php echo $sortOrder; ?>"
+                    <a href="?id=<?php echo urlencode($catId); ?>&page=<?php echo $i; ?>&sortCol=<?php echo $sortCol; ?>&sortOrder=<?php echo $sortOrder; ?>"
                        class="btn btn-light<?php if ($i == $page) echo ' active'; ?>" style="margin: 0 2px;">
                       <?php echo $i; ?>
                     </a>
@@ -151,18 +177,12 @@ if ($catid === null || $catid === '' || $catid === 'All') {
             </div> 
         </section>
 
-
-
-
         <!-- Footer-->
          <?php Footer(); ?>
         <!-- Bootstrap core JS-->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Core theme JS-->
         <script src="js/scripts.js"></script>
-
-
-
 
     </body>
 </html>

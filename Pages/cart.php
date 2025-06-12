@@ -1,4 +1,10 @@
 <?php
+require_once(__DIR__ . '/../vendor/autoload.php');
+if (class_exists('Dotenv\\Dotenv')) {
+    $dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__));
+    $dotenv->load();
+}
+
 session_start();
 require_once(__DIR__ . '/../Models/Database.php');
 require_once(__DIR__ . '/../Models/Cart.php');
@@ -73,7 +79,7 @@ if (strpos($backUrl, '/cart') !== false) {
                     </tr>
                 </tfoot>
             </table>
-            <form method="POST" action="#">
+            <form method="POST" action="/Pages/checkout.php">
                 <button type="submit" class="btn btn-success">Betala</button>
             </form>
         <?php endif; ?>
